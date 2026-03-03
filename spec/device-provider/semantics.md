@@ -1,7 +1,7 @@
-# ADPP v0 Semantics (normative)
+# ADPP v1 Semantics (normative)
 
 This document defines the **normative semantics** of the
-**Anolis Device Provider Protocol (ADPP)** v0.
+**Anolis Device Provider Protocol (ADPP)** v1.
 
 ---
 
@@ -74,6 +74,7 @@ well-established pattern.
 
 - The client SHOULD send `HelloRequest` as the first message.
 - The provider MUST respond with `HelloResponse`.
+- The client MUST validate `HelloResponse.protocol_version` matches the requested protocol version and fail session setup if it does not.
 - If the requested `protocol_version` is not supported, the provider MUST
   respond with:
   - `CODE_FAILED_PRECONDITION`, or
@@ -136,7 +137,7 @@ that respond to a CRUMBS identify handshake.
 
 `FunctionPolicy` fields are **informational hints** for Anolis and UIs.
 
-In v0:
+In v1:
 
 - Anolis is the authoritative enforcer of modes and leases.
 - Providers MAY defensively reject calls that violate policy metadata, but
@@ -182,7 +183,7 @@ behavior:
 - Fail the request with `CODE_NOT_FOUND`, **or**
 - Return partial results and omit unknown signals.
 
-(Recommended for v0: fail with `CODE_NOT_FOUND` to simplify client logic.)
+(Recommended for v1: fail with `CODE_NOT_FOUND` to simplify client logic.)
 
 ---
 
@@ -193,15 +194,15 @@ behavior:
 - Providers MAY implement calls synchronously.
 - Providers MAY accept calls asynchronously and return an `operation_id`.
 
-ADPP v0 does not define an operation lifecycle API. If async calls are used,
+ADPP v1 does not define an operation lifecycle API. If async calls are used,
 providers MUST document how results are observed (typically via signals).
 
-(Recommended for v0: synchronous execution.)
+(Recommended for v1: synchronous execution.)
 
 ### 8.2 Idempotency
 
 - `idempotency_key` is an optional retry hint.
-- Providers MAY ignore it in v0.
+- Providers MAY ignore it in v1.
 - If honored, providers SHOULD treat repeated calls with the same key as safe
   replays.
 
@@ -250,14 +251,14 @@ Invalid inputs MUST result in:
 ## 11. Backward compatibility
 
 - Unknown fields MUST be ignored (standard Protobuf behavior).
-- New optional fields may be added within v0.
-- Incompatible semantic or wire changes require a new major version (`v1`).
+- New optional fields may be added within v1.
+- Incompatible semantic or wire changes require a new major version (`v2`).
 
 ---
 
 ## 12. Security considerations (non-normative)
 
-ADPP v0 does not define authentication.
+ADPP v1 does not define authentication.
 
 For local IPC, rely on OS-level permissions (e.g., Unix socket ownership).
 For network transports, ADPP SHOULD be wrapped in an authenticated and

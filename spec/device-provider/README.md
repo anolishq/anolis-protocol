@@ -1,6 +1,6 @@
-# Anolis Device Provider Protocol (ADPP) — v0
+# Anolis Device Provider Protocol (ADPP) — v1
 
-This directory defines the **Anolis Device Provider Protocol (ADPP)**, version **v0**.
+This directory defines the **Anolis Device Provider Protocol (ADPP)**, version **v1**.
 
 ADPP specifies the **contract** between:
 
@@ -20,15 +20,16 @@ ADPP is intentionally **transport-agnostic** and **language-agnostic**.
 
 ## Scope
 
-ADPP v0 defines:
+ADPP v1 defines:
 
 - Enumerating devices (`ListDevices`)
 - Describing device capabilities (`DescribeDevice`)
 - Reading telemetry signals (`ReadSignals`)
 - Calling device functions (`Call`)
 - Reporting provider and device health (`GetHealth`)
+- Signaling provider startup readiness (`WaitReady`)
 
-ADPP v0 explicitly does **not** define:
+ADPP v1 explicitly does **not** define:
 
 - Any specific transport (HTTP, gRPC, IPC, etc.)
 - Authentication or authorization
@@ -52,13 +53,13 @@ These concerns are handled by Anolis or deployment-specific infrastructure.
 
 ## Versioning
 
-- The protocol is namespaced under `anolis.deviceprovider.v0`.
+- The protocol is namespaced under `anolis.deviceprovider.v1`.
 - Providers **MUST** report the protocol version they support.
 - Breaking wire or semantic changes require a new major version directory
-  (`v1`, `v2`, …).
+  (`v2`, `v3`, …).
 
 Backward-compatible extensions (new fields, new optional messages) are
-allowed within v0.
+allowed within v1.
 
 ---
 
