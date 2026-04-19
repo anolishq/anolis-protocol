@@ -16,4 +16,4 @@ jobs:
           lint: true
           format: true
           breaking: true
-          breaking_against: "https://github.com/FEASTorg/anolis-protocol.git#branch=main"
+          breaking_against: "https://github.com/anolishq/anolis-protocol.git#branch=main"

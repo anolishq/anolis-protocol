@@ -1,6 +1,6 @@
 # anolis-protocol
 
-[![buf](https://github.com/FEASTorg/anolis-protocol/actions/workflows/buf.yml/badge.svg)](https://github.com/FEASTorg/anolis-protocol/actions/workflows/buf.yml)
+[![buf](https://github.com/anolishq/anolis-protocol/actions/workflows/buf.yml/badge.svg)](https://github.com/anolishq/anolis-protocol/actions/workflows/buf.yml)
 
 Canonical protocol contracts for the Anolis ecosystem.
 
@@ -52,7 +52,7 @@ buf lint
 buf format --diff
 
 # Check for breaking changes vs main
-buf breaking --against "https://github.com/FEASTorg/anolis-protocol.git#branch=main"
+buf breaking --against "https://github.com/anolishq/anolis-protocol.git#branch=main"
 
 # Generate C++ and Python bindings (outputs to gen/, not committed)
 buf generate
