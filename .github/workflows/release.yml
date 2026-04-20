@@ -45,6 +45,50 @@ jobs:
           {"schema_version": 1, "repo": "anolishq/anolis-protocol", "component": "anolis-protocol", "version": "${{ steps.version.outputs.version }}", "platform": "source", "asset": "anolis-protocol-${{ steps.version.outputs.version }}-source.tar.gz", "sha256": "${{ steps.sha.outputs.sha256 }}"}
           EOF
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python build tools
+        run: pip install build hatchling hatch-vcs
+
+      - name: Generate Python bindings
+        uses: bufbuild/buf-action@v1
+        with:
+          generate: true
+          lint: false
+          format: false
+          breaking: false
+
+      - name: Create Python package init files
+        run: |
+          touch gen/python/anolis/__init__.py
+          touch gen/python/anolis/deviceprovider/__init__.py
+          touch gen/python/anolis/deviceprovider/v1/__init__.py
+
+      - name: Create protocol_pb2 compatibility shim
+        run: |
+          cat > gen/python/protocol_pb2.py <<'EOF'
+          """Compatibility shim: re-exports all ADPP v1 generated classes.
+
+          Import as: import protocol_pb2 as protocol
+          """
+          from anolis.deviceprovider.v1.call_pb2 import *
+          from anolis.deviceprovider.v1.envelope_pb2 import *
+          from anolis.deviceprovider.v1.handshake_pb2 import *
+          from anolis.deviceprovider.v1.health_pb2 import *
+          from anolis.deviceprovider.v1.inventory_pb2 import *
+          from anolis.deviceprovider.v1.readiness_pb2 import *
+          from anolis.deviceprovider.v1.status_pb2 import *
+          from anolis.deviceprovider.v1.telemetry_pb2 import *
+          from anolis.deviceprovider.v1.types_pb2 import *
+          from anolis.deviceprovider.v1.value_pb2 import *
+          EOF
+
+      - name: Build Python wheel
+        run: python -m build --wheel --outdir dist/
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -56,3 +100,4 @@ jobs:
             anolis-protocol-${{ steps.version.outputs.version }}-source.tar.gz
             SHA256SUMS
             manifest.json
+            dist/anolis_protocol-${{ steps.version.outputs.version }}-py3-none-any.whl

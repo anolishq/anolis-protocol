@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "anolis-protocol"
+dynamic = ["version"]
+description = "Generated Python bindings for the Anolis Device Provider Protocol (ADPP)"
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "protobuf>=5.29.5,<6.0.0",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["gen/python/anolis"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"gen/python/protocol_pb2.py" = "protocol_pb2.py"
