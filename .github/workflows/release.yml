@@ -53,16 +53,17 @@ jobs:
       - name: Install Python build tools
         run: pip install build hatchling hatch-vcs
 
-      - name: Generate Python bindings
+      - name: Install buf CLI
         uses: bufbuild/buf-action@v1
         with:
-          generate: true
-          lint: false
-          format: false
-          breaking: false
+          setup_only: true
+
+      - name: Generate Python bindings
+        run: buf generate
 
       - name: Create Python package init files
         run: |
+          mkdir -p gen/python/anolis/deviceprovider/v1
           touch gen/python/anolis/__init__.py
           touch gen/python/anolis/deviceprovider/__init__.py
           touch gen/python/anolis/deviceprovider/v1/__init__.py
