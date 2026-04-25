@@ -105,17 +105,23 @@ message ArgSpec {
   // Whether this argument must be supplied in a CallRequest.
   bool required = 5;
   // Minimum allowed value for DOUBLE type arguments.
-  double min_double = 6;
+  // If absent (field not set), no lower bound is enforced.
+  optional double min_double = 6;
   // Maximum allowed value for DOUBLE type arguments.
-  double max_double = 7;
+  // If absent (field not set), no upper bound is enforced.
+  optional double max_double = 7;
   // Minimum allowed value for INT64 type arguments.
-  int64 min_int64 = 8;
+  // If absent (field not set), no lower bound is enforced.
+  optional int64 min_int64 = 8;
   // Maximum allowed value for INT64 type arguments.
-  int64 max_int64 = 9;
+  // If absent (field not set), no upper bound is enforced.
+  optional int64 max_int64 = 9;
   // Minimum allowed value for UINT64 type arguments.
-  uint64 min_uint64 = 10;
+  // If absent (field not set), no lower bound is enforced.
+  optional uint64 min_uint64 = 10;
   // Maximum allowed value for UINT64 type arguments.
-  uint64 max_uint64 = 11;
+  // If absent (field not set), no upper bound is enforced.
+  optional uint64 max_uint64 = 11;
   // Allowed string values for STRING type arguments (enum constraint).
   repeated string allowed_values = 12;
 }
