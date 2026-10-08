@@ -131,6 +131,56 @@ def assert_config_schema_envelope(stdout: str) -> None:
         raise ConformanceFailure(f"envelope 'schema' must be a JSON object (a JSON Schema); got {type(schema).__name__}")
 
 
+_CHECK_HOST_STATUSES = ("met", "unmet", "unknown")
+
+
+def assert_check_host_envelope(stdout: str, returncode: int) -> None:
+    """Anolis executable profile §3: ``--check-host <config>`` prints a versioned
+    envelope listing provider-owned host requirements, and its exit code agrees
+    with them. Asserts *shape* and that agreement only — a parseable JSON
+    **object**; an integer ``check_host_version`` >= 1; ``requirements`` an array
+    of objects, each with a non-empty string ``id`` and a ``status`` of
+    met/unmet/unknown; and exit ``1`` exactly when some status is ``unmet``
+    (``0`` otherwise). What the requirements *are* is provider-owned and
+    deliberately NOT asserted. Exit ``2`` (could not evaluate) is not a valid
+    answer for a config the harness knows is valid. See
+    ``docs/profiles/anolis-executable-profile-v1.md``; waivable."""
+    try:
+        doc = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        raise ConformanceFailure(
+            f"--check-host must print a JSON object to stdout; got unparseable output ({exc})"
+        )
+    if not isinstance(doc, dict):
+        raise ConformanceFailure(f"--check-host envelope must be a JSON object; got {type(doc).__name__}")
+    ver = doc.get("check_host_version")
+    # bool is an int subclass — reject it explicitly (matches the config-schema guard).
+    if isinstance(ver, bool) or not isinstance(ver, int) or ver < 1:
+        raise ConformanceFailure(f"envelope 'check_host_version' must be an integer >= 1; got {ver!r}")
+    reqs = doc.get("requirements")
+    if not isinstance(reqs, list):
+        raise ConformanceFailure(f"envelope 'requirements' must be an array; got {type(reqs).__name__}")
+    unmet = False
+    for i, req in enumerate(reqs):
+        if not isinstance(req, dict):
+            raise ConformanceFailure(f"requirements[{i}] must be a JSON object; got {type(req).__name__}")
+        rid = req.get("id")
+        if not isinstance(rid, str) or not rid:
+            raise ConformanceFailure(f"requirements[{i}].id must be a non-empty string; got {rid!r}")
+        status = req.get("status")
+        if status not in _CHECK_HOST_STATUSES:
+            raise ConformanceFailure(
+                f"requirements[{i}] ({rid}).status must be one of {_CHECK_HOST_STATUSES}; got {status!r}"
+            )
+        unmet = unmet or status == "unmet"
+    expected = 1 if unmet else 0
+    if returncode != expected:
+        raise ConformanceFailure(
+            f"--check-host exit code must be {expected} when {'some' if unmet else 'no'} requirement "
+            f"is unmet; got {returncode}"
+        )
+
+
 def _defined_error_codes(codes: SimpleNamespace) -> set[int]:
     """Every status code the proto enum defines, minus OK and UNSPECIFIED."""
     return set(vars(codes).values()) - {codes.OK, codes.UNSPECIFIED}

@@ -16,6 +16,7 @@ import subprocess
 import pytest
 
 from .checks import (
+    assert_check_host_envelope,
     assert_config_schema_envelope,
     assert_function_ids_per_type_from_one,
     assert_signal_ids_snake_case,
@@ -52,7 +53,7 @@ def test_wait_ready_reports_init_time_ms(client: AdppClient, codes, status_text)
 
 # ---- capability conventions ---------------------------------------------
 def test_signal_ids_snake_case(client: AdppClient) -> None:
-    # Convention: signal_id is snake_case (see the executable profile, §5).
+    # Convention: signal_id is snake_case (see the executable profile, §6).
     caps = _device_capabilities(client)
     if not caps:
         pytest.skip("provider exposes no devices")
@@ -61,7 +62,7 @@ def test_signal_ids_snake_case(client: AdppClient) -> None:
 
 
 def test_function_ids_per_type_from_one(client: AdppClient) -> None:
-    # Convention: each device's function_ids are per-type {1..N} (see §5).
+    # Convention: each device's function_ids are per-type {1..N} (see §6).
     caps = _device_capabilities(client)
     if not caps:
         pytest.skip("provider exposes no devices")
@@ -106,3 +107,21 @@ def test_cli_config_schema(provider_bin) -> None:
     if proc.returncode != 0:
         pytest.skip("provider does not implement --config-schema (unrecognized verb)")
     assert_config_schema_envelope(proc.stdout)
+
+
+def test_cli_check_host(provider_bin, provider_config) -> None:
+    # `--check-host <config>` (§3). Exit 1 is ambiguous on its own — "a requirement
+    # is unmet" or "unrecognized verb" — so implementation is decided by stdout: a
+    # provider without the verb prints nothing there, and is SKIPPED (adopts with
+    # zero coordination, as for --config-schema). Once an envelope is printed it
+    # MUST be valid and its exit code MUST agree with the statuses. Whether the
+    # harness host meets the requirements is not asserted: either answer is valid.
+    proc = subprocess.run(
+        [str(provider_bin), "--check-host", str(provider_config)],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    if not proc.stdout.strip():
+        pytest.skip("provider does not implement --check-host (no envelope on stdout)")
+    assert_check_host_envelope(proc.stdout, proc.returncode)

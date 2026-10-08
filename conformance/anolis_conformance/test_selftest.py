@@ -15,6 +15,7 @@ import pytest
 
 from .checks import (
     ConformanceFailure,
+    assert_check_host_envelope,
     assert_config_schema_envelope,
     assert_controlled_malformed,
     assert_freshness_hint_not_fatal,
@@ -301,7 +302,7 @@ def test_selftest_freshness_hint_validator(protocol, codes) -> None:
             assert_freshness_hint_not_fatal(resp, codes)
 
 
-# --- capability-convention validators (executable profile §4) ---
+# --- capability-convention validators (executable profile §6) ---
 
 
 def _caps(protocol, *, signal_ids=(), function_ids=()):
@@ -412,3 +413,47 @@ def test_selftest_config_schema_envelope_validator() -> None:
     ):
         with pytest.raises(ConformanceFailure):
             assert_config_schema_envelope(bad)
+
+
+def test_selftest_check_host_envelope_validator() -> None:
+    # Prove the real validator the executable-profile suite runs
+    # (checks.assert_check_host_envelope): well-formed envelopes with a matching
+    # exit code pass; every malformed shape, and every exit code that disagrees
+    # with the statuses, is rejected. Pure string + code in; no fake binary.
+    import json
+
+    def env(reqs, **extra):
+        return json.dumps({"check_host_version": 1, "provider": "anolis-provider-x", "requirements": reqs, **extra})
+
+    met = {"id": "bus.present", "status": "met", "detail": "/dev/i2c-1 exists"}
+    unmet = {"id": "bus.access", "status": "unmet", "detail": "permission denied", "remedy": "add the user to group i2c"}
+    unknown = {"id": "bus.clock", "status": "unknown", "detail": "clock not exposed on this platform"}
+
+    for good, code in (
+        (env([]), 0),  # nothing to check (e.g. a mock config)
+        (env([met]), 0),
+        (env([met, unknown]), 0),  # unknown is not unmet
+        (env([met, unmet]), 1),
+        (env([unmet], extra_key="provider-specific"), 1),  # extra keys allowed
+    ):
+        assert_check_host_envelope(good, code)  # must NOT raise
+
+    for bad, code in (
+        ("not json", 0),  # unparseable
+        (json.dumps([met]), 0),  # top-level not an object
+        (json.dumps({"requirements": []}), 0),  # missing version
+        (json.dumps({"check_host_version": 0, "requirements": []}), 0),  # version < 1
+        (json.dumps({"check_host_version": True, "requirements": []}), 0),  # bool is not a version
+        (json.dumps({"check_host_version": 1}), 0),  # missing requirements
+        (json.dumps({"check_host_version": 1, "requirements": {}}), 0),  # requirements not an array
+        (env(["bus.present"]), 0),  # requirement not an object
+        (env([{"status": "met"}]), 0),  # missing id
+        (env([{"id": "", "status": "met"}]), 0),  # empty id
+        (env([{"id": "bus.present", "status": "ok"}]), 0),  # status outside met/unmet/unknown
+        (env([{"id": "bus.present"}]), 0),  # missing status
+        (env([met]), 1),  # exit 1 with nothing unmet
+        (env([unmet]), 0),  # exit 0 with something unmet
+        (env([met]), 2),  # exit 2 is not an answer for a valid config
+    ):
+        with pytest.raises(ConformanceFailure):
+            assert_check_host_envelope(bad, code)
