@@ -23,6 +23,7 @@ from .checks import (
     assert_signal_ids_snake_case,
     assert_signalvalues_l2,
     assert_status_present,
+    check_host_implemented,
 )
 from .client import (
     AdppClient,
@@ -302,7 +303,7 @@ def test_selftest_freshness_hint_validator(protocol, codes) -> None:
             assert_freshness_hint_not_fatal(resp, codes)
 
 
-# --- capability-convention validators (executable profile §6) ---
+# --- capability-convention validators (executable profile §5) ---
 
 
 def _caps(protocol, *, signal_ids=(), function_ids=()):
@@ -457,3 +458,26 @@ def test_selftest_check_host_envelope_validator() -> None:
     ):
         with pytest.raises(ConformanceFailure):
             assert_check_host_envelope(bad, code)
+
+
+def test_selftest_check_host_implemented() -> None:
+    # The skip rule test_cli_check_host applies (checks.check_host_implemented):
+    # a provider without the verb exits non-zero, and may print its usage text on
+    # stdout (bread's and ezo's print_usage write to std::cout), which must SKIP,
+    # not fail as an unparseable envelope.
+    usage = (
+        "Usage:\n  anolis-provider-bread --version\n  anolis-provider-bread --config-schema\n"
+        "  anolis-provider-bread --check-config <path>\n  anolis-provider-bread --config <path>\n\n"
+        "Implements ADPP v1 over BREAD-over-CRUMBS with config-seeded or hardware-backed inventory.\n"
+    )
+    envelope = '{"check_host_version": 1, "requirements": []}'
+    for stdout, code, implemented in (
+        ("", 1, False),  # rejected, nothing printed
+        (usage, 1, False),  # rejected, usage text on stdout
+        ("", 2, False),  # an argparse-style usage error
+        (envelope, 0, True),
+        (envelope, 1, True),  # answered; the validator then checks the exit code
+        ("{}", 2, True),  # answered with JSON; the validator decides
+        ("", 0, True),  # exit 0 claims an answer, so the validator must see it
+    ):
+        assert check_host_implemented(stdout, code) is implemented, (stdout[:20], code)

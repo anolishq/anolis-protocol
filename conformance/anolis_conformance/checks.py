@@ -134,8 +134,24 @@ def assert_config_schema_envelope(stdout: str) -> None:
 _CHECK_HOST_STATUSES = ("met", "unmet", "unknown")
 
 
+def check_host_implemented(stdout: str, returncode: int) -> bool:
+    """Anolis executable profile §6: whether a ``--check-host`` run answered the
+    verb at all. Exit ``1`` is ambiguous on its own (a requirement is unmet, or
+    the verb was rejected as a usage error), and a provider that rejects it may
+    print a usage message on stdout. So: exit ``0`` always counts as implemented;
+    a non-zero exit counts only when stdout parses as JSON. A provider that
+    prints invalid JSON with a non-zero exit is therefore skipped, not failed."""
+    if returncode == 0:
+        return True
+    try:
+        json.loads(stdout)
+    except json.JSONDecodeError:
+        return False
+    return True
+
+
 def assert_check_host_envelope(stdout: str, returncode: int) -> None:
-    """Anolis executable profile §3: ``--check-host <config>`` prints a versioned
+    """Anolis executable profile §6: ``--check-host <config>`` prints a versioned
     envelope listing provider-owned host requirements, and its exit code agrees
     with them. Asserts *shape* and that agreement only — a parseable JSON
     **object**; an integer ``check_host_version`` >= 1; ``requirements`` an array
