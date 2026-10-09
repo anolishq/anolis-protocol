@@ -29,6 +29,6 @@
 - The cross-provider **conformance harness ships INSIDE the wheel** (the
   `[conformance]` extra + `anolis-adpp-conformance` script) from **v1.3.0**
   onward — it is not a separate package.
-- The README's **three install pins** (currently `v1.7.0`) are guarded by the
+- The README's **three install pins** (currently `v1.8.0`) are guarded by the
   `README release pins are consistent` lint step — keep all three on the **same
   version** or CI fails.
