@@ -4,6 +4,8 @@ All notable changes to the Anolis Device Provider Protocol (ADPP) are documented
 
 ## [Unreleased]
 
+## [v1.8.0] — 2026-10-09
+
 ### Added
 
 - **§6 host requirement check** (executable-profile, **waivable**). A provider
