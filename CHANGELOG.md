@@ -4,6 +4,27 @@ All notable changes to the Anolis Device Provider Protocol (ADPP) are documented
 
 ## [Unreleased]
 
+### Added
+
+- **§6 host requirement check** (executable-profile, **waivable**). A provider
+  may implement `--check-host <config>`: it checks the host requirements its
+  config implies (a device node present and accessible, a bus parameter within a
+  limit) and prints a versioned envelope (`check_host_version` + `requirements`,
+  `provider` recommended); each requirement has a provider-owned `id`, a
+  `status` of `met` / `unmet` / `unknown`, and recommended `detail` and `remedy`.
+  Exit `0` when nothing is unmet (`unknown` does not fail), `1` when something
+  is, `2` when it could not evaluate. Read-only. At startup a provider with unmet
+  requirements stays up and not ready instead of exiting, reporting them through
+  the new recommended readiness keys `host_check` and `host_unmet` (§3).
+  Asserted by `test_cli_check_host`, which skips a provider that rejects the
+  verb (non-zero exit and no JSON on stdout, where bread and ezo print their
+  usage text), and validated hermetically by
+  `test_selftest_check_host_envelope_validator` and
+  `test_selftest_check_host_implemented`. Lets an installer or commissioning tool
+  report a provider's host needs without knowing its transport
+  (anolishq/anolis#318). Existing section numbers are unchanged; "Relationship
+  to other documents" is now §7. No wire/proto change. (#66)
+
 ## [v1.7.0] — 2026-08-02
 
 ### Added

@@ -22,6 +22,9 @@ framed-stdio (transport) tests.
 - `--config-schema` — print the provider's config **JSON Schema** in a versioned
   envelope on stdout and exit `0`; **configless** (takes no `--config` — you use
   it to learn how to author config). See §2.
+- `--check-host <path>` — check the host requirements a given config implies,
+  print the result in a versioned envelope on stdout; exit `0` when none is
+  unmet, `1` when any is. Read-only. See §6.
 
 ## 2. Config schema discovery (`--config-schema`)
 
@@ -66,6 +69,8 @@ When the provider advertises `supports_wait_ready=true`, a `WaitReady` response'
 | `ready` | recommended | `"true"` / `"false"` — readiness as a value, pending a typed `ready` field in `readiness.proto`. |
 | `device_count` | recommended | Number of devices the provider brought up. |
 | `provider_impl` | recommended | Provider implementation identifier (e.g. name + version), for diagnostics. |
+| `host_check` | recommended | `"ok"` / `"unmet"` — the startup result of the §6 host checks. |
+| `host_unmet` | recommended | When `host_check` is `"unmet"`: a short summary of the unmet requirement ids and details, for an operator. |
 
 Provider-specific extra keys are allowed. Only `init_time_ms` is gated; the
 recommended keys are conventions, not asserted.
@@ -91,7 +96,63 @@ they are conventions, not core ADPP, and are waivable.
   global counter (`1001`, `1002`, …) and not an arbitrary value (`10`). Asserted
   by `test_function_ids_per_type_from_one`.
 
-## 6. Relationship to other documents
+## 6. Host requirement check (`--check-host`)
+
+A provider owns its transport, so only the provider knows what its transport
+needs from the host: a device node present and accessible, a bus parameter
+within a limit, an interface enabled. `--check-host` lets an installer or a
+commissioning tool ask *before* starting the provider, and get an answer it can
+print without understanding it. The requirements, their ids and their meaning are
+**provider-owned**; tooling never interprets them.
+
+- Takes the config path: `--check-host <path>`. What a provider needs depends on
+  its config (which bus, which limits).
+- **Read-only.** It MUST NOT actuate anything, and SHOULD avoid bus transactions:
+  open and inspect the device, read configured parameters, do not talk to the
+  hardware behind it.
+- Writes a single JSON object to **stdout**; diagnostics, if any, go to stderr.
+- Exit codes:
+
+| Exit | Meaning |
+| --- | --- |
+| `0` | No requirement is `unmet` (each is `met` or `unknown`). |
+| `1` | At least one requirement is `unmet`. |
+| `2` | The provider could not evaluate its requirements, e.g. the config is invalid. Stdout MAY be empty. |
+
+- The JSON is an **envelope** listing the requirements:
+
+| Key | Status | Meaning |
+| --- | --- | --- |
+| `check_host_version` | **required** | Integer ≥ 1 — the version of **this envelope convention** (this document defines `1`). Gated by the harness (waivable). |
+| `requirements` | **required** | Array of requirement objects (below). May be empty: a provider with nothing to check on this host (e.g. a mock config) reports `[]` and exits `0`. |
+| `provider` | recommended | Provider identity, as for `--config-schema`. |
+
+Each requirement object:
+
+| Key | Status | Meaning |
+| --- | --- | --- |
+| `id` | **required** | Non-empty string, provider-owned (e.g. `bus.access`). Stable across releases so tooling can refer to it. |
+| `status` | **required** | `"met"`, `"unmet"` or `"unknown"` (the provider cannot tell on this host — e.g. a parameter the platform does not expose). |
+| `detail` | recommended | What was checked and found, in words an operator can act on. |
+| `remedy` | recommended | For `unmet`: what to change on the host. Platform-specific advice belongs here, not in tooling. |
+
+The exit code MUST agree with the statuses: `1` exactly when some requirement is
+`unmet`. `unknown` does not fail the check: a requirement the provider cannot
+observe on this platform must not block every install there. Provider-specific
+extra keys are allowed, in the envelope and in each requirement.
+
+A provider that does not implement the verb rejects it as a usage error: it
+exits non-zero and prints no JSON on stdout (often nothing, sometimes a usage
+message). The harness treats a non-zero exit without JSON on stdout as "not
+implemented" and skips, so the convention adopts without coordination (as for
+`--config-schema`).
+
+**At startup** a provider runs the same checks. On an `unmet` requirement it
+stays up and **not ready** rather than exiting, and reports what is unmet through
+the §3 readiness diagnostics (`host_check`, `host_unmet`), so the runtime can show
+why it has no devices from that provider.
+
+## 7. Relationship to other documents
 
 - `semantics.md` — core ADPP v1 (normative).
 - `profiles/framed-stdio-v1.md` — the stdio transport binding (normative).

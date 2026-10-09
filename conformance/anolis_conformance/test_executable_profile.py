@@ -16,9 +16,11 @@ import subprocess
 import pytest
 
 from .checks import (
+    assert_check_host_envelope,
     assert_config_schema_envelope,
     assert_function_ids_per_type_from_one,
     assert_signal_ids_snake_case,
+    check_host_implemented,
 )
 from .client import AdppClient
 
@@ -106,3 +108,21 @@ def test_cli_config_schema(provider_bin) -> None:
     if proc.returncode != 0:
         pytest.skip("provider does not implement --config-schema (unrecognized verb)")
     assert_config_schema_envelope(proc.stdout)
+
+
+def test_cli_check_host(provider_bin, provider_config) -> None:
+    # `--check-host <config>` (§6). A provider without the verb rejects it as a
+    # usage error — non-zero, and no JSON on stdout (shipped providers print their
+    # usage text there) — and is SKIPPED, no waiver needed, as for --config-schema.
+    # Once it answers, the envelope MUST be valid and the exit code MUST agree with
+    # the statuses. Whether the harness host meets the requirements is not
+    # asserted: either answer is valid.
+    proc = subprocess.run(
+        [str(provider_bin), "--check-host", str(provider_config)],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    if not check_host_implemented(proc.stdout, proc.returncode):
+        pytest.skip("provider does not implement --check-host (usage error, no JSON on stdout)")
+    assert_check_host_envelope(proc.stdout, proc.returncode)
