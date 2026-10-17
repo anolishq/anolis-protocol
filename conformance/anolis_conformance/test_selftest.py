@@ -37,7 +37,7 @@ from .profiles import load_profile
 # A single fake provider; FAKE_MODE selects the misbehavior. It reads one request
 # frame, then acts. Response-building modes import the installed protobufs. The
 # shebang is filled in with the test interpreter (which has protobuf available).
-_FAKE_SRC = r'''import os, sys, struct, time
+_FAKE_SRC = r'''import os, signal, sys, struct, time
 mode = os.environ.get("FAKE_MODE", "good")
 def read_exact(n):
     b = b""
@@ -52,7 +52,7 @@ out = sys.stdout.buffer
 if mode == "hang":
     time.sleep(60)
 elif mode == "crash_signal":
-    os.abort()                                   # SIGABRT -> negative returncode
+    os.kill(os.getpid(), signal.SIGKILL)         # negative returncode; SIGKILL dumps no core
 elif mode == "exit_bad":
     sys.exit(7)                                  # undocumented exit code
 elif mode == "oversized":
@@ -79,7 +79,7 @@ elif mode in ("respond_ok", "respond_unspecified", "respond_error",
     data = resp.SerializeToString()
     out.write(struct.pack("<I", len(data)) + data); out.flush()
     if mode == "respond_then_crash":
-        os.abort()                                   # SIGABRT -> negative exit
+        os.kill(os.getpid(), signal.SIGKILL)         # negative exit; no core dump
     if mode == "respond_error_then_exit_bad":
         sys.exit(7)                                  # undocumented exit after a response
     time.sleep(60)
