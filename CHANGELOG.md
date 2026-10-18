@@ -4,6 +4,16 @@ All notable changes to the Anolis Device Provider Protocol (ADPP) are documented
 
 ## [Unreleased]
 
+### Fixed
+
+- Verifier self-tests: the `crash_signal` and `respond_then_crash` fake
+  providers now die by `SIGKILL` instead of `os.abort()`. `SIGABRT` dumps
+  core, and the process does not exit until the host's core handler has
+  taken the dump. That delay counts against the 3 s budget in
+  `test_selftest_crash_signal_detected` and the 0.5 s settle in the
+  `respond_then_crash` case, so a slow core handler failed them at random.
+  (#72)
+
 ## [v1.8.0] — 2026-10-09
 
 ### Added
