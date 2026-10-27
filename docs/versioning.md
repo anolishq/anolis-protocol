@@ -4,7 +4,8 @@
 
 This repository uses semantic versioning tags:
 
-- `MAJOR.MINOR.PATCH`
+- `vMAJOR.MINOR.PATCH` (for example `v1.8.0`). Release asset names drop the `v`
+  (`anolis-protocol-1.8.0-source.tar.gz`).
 
 ## Change Classification
 
@@ -62,7 +63,10 @@ their own schedule rather than being broken by a harness bump.
 ## Enforcement
 
 `buf breaking` is run on every PR against the `main` branch baseline.
-Breaking changes will fail CI and must be accompanied by a major version bump.
+A `buf breaking` failure fails CI. A major version bump is required only for
+wire-contract-breaking changes (see Change Classification); a change that buf
+flags but that keeps the wire format is classified MINOR. The release workflow
+does not run `buf breaking`.
 
 ## Consumer Expectations
 
