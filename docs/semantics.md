@@ -4,8 +4,8 @@ This document defines the **normative semantics** of the
 **Anolis Device Provider Protocol (ADPP)** v1.
 
 > **Conformance levels.** A provider's conformance is stated as `ADPP v1/L<n>` —
-> the v1 wire contract plus a **cumulative** semantic bar. **Level 1** (L1, the
-> original bar) is everything in this document *not* tagged. **Level 2** (L2) is
+> the v1 wire contract plus a **cumulative** semantic bar. **Level 1** (L1) is
+> everything in this document *not* tagged. **Level 2** (L2) is
 > L1 **plus** every requirement tagged **[L2]**; further levels are likewise
 > additive. The wire contract is identical across levels — a level only *tightens*
 > behavior.
@@ -60,8 +60,9 @@ A Provider is responsible for:
 Providers may defensively validate inputs and reject invalid or unsafe
 device-level actions, but Anolis is the sole authority for:
 
-- Control modes (`AUTO`, `MANUAL`, `IDLE`, `SAFE`, etc.)
-- Manual control leases
+- Control modes (`MANUAL`, `AUTO`, `IDLE`, `FAULT`)
+- Manual control leases (v1 has only the per-function hint
+  `FunctionPolicy.requires_lease`; the Anolis runtime does not implement leases)
 - Cross-device safety interlocks
 - Behavior execution semantics
 
@@ -133,7 +134,9 @@ ordering.
 - `Device.device_id` MUST be stable for the lifetime of the Provider process.
 - Providers SHOULD preserve `device_id` stability across restarts when feasible.
 - Uniqueness is scoped to the Provider; Anolis SHOULD treat
-  `{provider_name, device_id}` as globally unique.
+  `{provider_id, device_id}` as globally unique, where `provider_id` is the
+  client's configured name for the provider instance (e.g. `sim0`), not the
+  provider's self-reported `provider_name`.
 
 ### 5.2 Discovery
 
@@ -171,7 +174,8 @@ that respond to a CRUMBS identify handshake.
 
 In v1:
 
-- Anolis is the authoritative enforcer of modes and leases.
+- Anolis is the authoritative enforcer of runtime modes. The Anolis runtime does
+  not implement leases and does not read `allowed_modes` or `requires_lease`.
 - Providers MAY defensively reject calls that violate policy metadata, but
   Anolis MUST NOT rely on provider enforcement.
 
@@ -353,9 +357,13 @@ signals). This preserves §8.1.
 - Incompatible **wire** changes require a new major version (`v2`).
 - **Semantic** tightening (a stricter `MUST`) is introduced as a new, **opt-in
   conformance level** within the current major version (see the *Conformance
-  levels* note above and `versioning.md`). Raising the *minimum* level required of
-  all `ADPP v1` providers is itself a breaking change and requires a major
-  version.
+  levels* note above and `versioning.md`). Current practice departs from that
+  rule: a requirement classified as a clarification is added untagged at L1 and
+  gated by the L1 harness, even where it can make a previously-conformant
+  provider non-conformant (as §7.3 can). §7.2 (non-empty default set), §7.3
+  (freshness hint) and §8.1 (declared results) are such clauses. Raising
+  the *minimum* level required of all `ADPP v1` providers is itself a breaking
+  change and requires a major version.
 
 ---
 

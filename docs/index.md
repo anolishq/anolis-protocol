@@ -22,6 +22,7 @@ ADPP is intentionally **transport-agnostic** and **language-agnostic**.
 
 ADPP v1 defines:
 
+- Opening a session (`Hello`)
 - Enumerating devices (`ListDevices`)
 - Describing device capabilities (`DescribeDevice`)
 - Reading telemetry signals (`ReadSignals`)
@@ -31,7 +32,9 @@ ADPP v1 defines:
 
 ADPP v1 explicitly does **not** define:
 
-- Any specific transport (HTTP, gRPC, IPC, etc.)
+- Any specific transport (HTTP, gRPC, IPC, etc.); the framed stdio binding the
+  Anolis runtime uses is a separate normative profile,
+  `profiles/framed-stdio-v1.md`
 - Authentication or authorization
 - Time-series database schemas
 - Behavior Tree semantics or execution rules
@@ -91,7 +94,10 @@ allowed within v1.
   entirely provider-internal.
 
 - **Anolis owns orchestration**  
-  Modes, manual leases, arbitration, safety policies, and behavior execution
-  are exclusively Anolis responsibilities.
+  Modes, arbitration of manual and automated calls, safety policies, and
+  behavior execution are Anolis responsibilities. The spec also assigns manual
+  leases to Anolis, but the runtime does not implement them and does not enforce
+  `requires_lease` or `allowed_modes`. Providers may defensively reject unsafe
+  device-level actions; Anolis does not rely on that.
 
 ADPP exists to keep this boundary explicit and stable.

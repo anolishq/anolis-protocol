@@ -1,6 +1,6 @@
 # anolis-protocol
 
-[![buf](https://github.com/anolishq/anolis-protocol/actions/workflows/buf.yml/badge.svg)](https://github.com/anolishq/anolis-protocol/actions/workflows/buf.yml)
+[![CI](https://github.com/anolishq/anolis-protocol/actions/workflows/ci.yml/badge.svg)](https://github.com/anolishq/anolis-protocol/actions/workflows/ci.yml)
 
 Canonical protocol contracts for the Anolis ecosystem.
 
@@ -37,16 +37,14 @@ The cross-provider **conformance harness** (the `[conformance]` extra + the
 
 ```sh
 pip install "anolis-protocol[conformance] @ https://github.com/anolishq/anolis-protocol/releases/download/v1.8.0/anolis_protocol-1.8.0-py3-none-any.whl"
-# or, from a checkout: pip install ".[conformance]"
+# or, from a checkout with tags fetched, after generating gen/python and its
+# package shims as in .github/workflows/ci.yml: pip install ".[conformance]"
 ```
 
 **buf BSR (code generation):**
 
-```yaml
-# buf.yaml deps
-deps:
-  - buf.build/anolishq/anolis-protocol
-```
+The module is not published to the Buf Schema Registry. Generate code from the
+`proto/` directory of the release source tarball above.
 
 ### Work with the schema directly (contributors)
 
@@ -62,7 +60,7 @@ buf lint
 # Check breaking changes vs main
 buf breaking --against "https://github.com/anolishq/anolis-protocol.git#branch=main"
 
-# Generate C++ and Python bindings (outputs to gen/, not committed)
+# Generate Python bindings (outputs to gen/python, not committed)
 buf generate
 ```
 
@@ -76,8 +74,8 @@ buf generate
 
 ```text
 anolis-protocol/
-├── buf.yaml              # Buf v2 module config (lint, breaking, deps)
-├── buf.gen.yaml          # Canonical generation config (C++, Python)
+├── buf.yaml              # Buf v2 module config (lint, breaking)
+├── buf.gen.yaml          # Canonical generation config (Python)
 ├── buf.lock              # Pinned dependency hashes
 ├── proto/
 │   └── anolis/
@@ -122,13 +120,14 @@ buf format --diff
 # Check for breaking changes vs main
 buf breaking --against "https://github.com/anolishq/anolis-protocol.git#branch=main"
 
-# Generate C++ and Python bindings (outputs to gen/, not committed)
+# Generate Python bindings (outputs to gen/python, not committed)
 buf generate
 ```
 
 ## Versioning
 
-- Repository uses semantic versioning tags: `MAJOR.MINOR.PATCH`.
+- Repository uses semantic versioning tags: `vMAJOR.MINOR.PATCH` (e.g. `v1.8.0`).
+  Pushing a `v*` tag runs the release workflow.
 - Breaking **wire-contract** changes require a major bump (`buf breaking`
   enforces this on every PR).
 - **Semantic** tightening (stricter conformance, same wire) ships as an opt-in

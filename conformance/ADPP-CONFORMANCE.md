@@ -2,8 +2,8 @@
 
 A binary-level acceptance harness that drives an Anolis provider **executable**
 through the ADPP wire lifecycle and checks its behavior. It is the verifier for
-cross-provider convergence work and the future provider-SDK's acceptance test
-(anolis-protocol#25).
+cross-provider convergence work and the acceptance test for providers built on
+`anolis-provider-sdk`.
 
 > **This document is not normative.** The normative sources are
 > `docs/semantics.md` (core ADPP), `docs/profiles/framed-stdio-v1.md` (the stdio
@@ -13,12 +13,11 @@ cross-provider convergence work and the future provider-SDK's acceptance test
 > accepts every permitted behavior; if a check here ever conflicts with its
 > source, the source wins and the check is the bug.
 
-**Status:** *foundation.* This PR delivers the generic harness + hermetic
+**Status:** The harness ships the generic test suites + hermetic
 verifier self-tests. It ships **no implementer-specific data** — providers pull
 this pinned artifact and supply their own `--provider-profile`. Per-provider CI
-lanes (in each provider repo), the full assertion set, the version alignment, and
-an org-level cross-version compatibility matrix are tracked follow-ups under #25 —
-do not read this as "all of #25 is done".
+lanes run in each provider repo, and an org-level cross-version compatibility
+matrix runs in `anolishq/.github` (see *Provider-side concerns* below).
 
 **Platform:** Linux/POSIX only for now (the client uses `select` on pipes).
 Windows support is a tracked follow-up; don't present it as cross-platform yet.
@@ -26,7 +25,11 @@ Windows support is a tracked follow-up; don't present it as cross-platform yet.
 ## Running it
 
 ```bash
-pip install anolis-protocol[conformance]
+# No PyPI package: install the release wheel by URL. This pin is not covered by the
+# CI pin check; keep it on the same version as the README.md install pins.
+# Or, from a checkout with tags fetched, after generating gen/python and its
+# package shims as in .github/workflows/ci.yml: pip install ".[conformance]"
+pip install "anolis-protocol[conformance] @ https://github.com/anolishq/anolis-protocol/releases/download/v1.8.0/anolis_protocol-1.8.0-py3-none-any.whl"
 # --provider-config is the mock-mode config for CI (no real i2c);
 # --provider-profile is the provider-owned manifest (identity + waivers).
 anolis-adpp-conformance \
@@ -144,7 +147,9 @@ with a provider-specific fixture; the suite does not claim these:
 - a deadline expiring *during* synchronous execution (needs a deterministic slow
   function), and proving a rejected call produced *no side effects*;
 - on a provider whose mock backend returns `UNAVAILABLE`, the bounds / non-finite
-  / deadline tests skip — they need an `OK` call to isolate argument validation.
+  tests skip — they need an `OK` call to isolate argument validation. The
+  expired- and malformed-deadline tests make no baseline call, so they fail on
+  such a provider if it returns `UNAVAILABLE` before checking the deadline.
 
 ## Provider-side concerns (#25)
 
