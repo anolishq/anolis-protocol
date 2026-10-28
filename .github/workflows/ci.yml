@@ -125,10 +125,18 @@ jobs:
       # thing gated here is that the verifier itself is sound (the hermetic
       # self-tests above against in-repo fake providers).
 
+  # Runs on every PR: this workflow has no changes job to path-filter on, and
+  # the check is cheap. Gated through ok so a failing docs check blocks merge.
+  docs:
+    name: Docs
+    permissions:
+      contents: read
+    uses: anolishq/.github/.github/workflows/docs-check.yml@0199b6cc7cb73a02d58f75ec8ed763ac40e54dca # v2
+
   ok:
     name: ok
     if: always()
-    needs: [lint, conformance]
+    needs: [lint, conformance, docs]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
