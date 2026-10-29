@@ -170,12 +170,21 @@ that respond to a CRUMBS identify handshake.
 
 ### 6.3 Policy metadata
 
-`FunctionPolicy` fields are **informational hints** for Anolis and UIs.
+`FunctionPolicy` fields describe when and how a function may be called. Anolis
+is the authoritative enforcer.
 
 In v1:
 
-- Anolis is the authoritative enforcer of runtime modes. The Anolis runtime does
-  not implement leases and does not read `allowed_modes` or `requires_lease`.
+- `allowed_modes` and `min_interval_ms` are enforced by Anolis runtime releases
+  after 0.5.0 (anolishq/anolis#566). A call in a mode outside a non-empty
+  `allowed_modes`, or sooner than `min_interval_ms` after the last call
+  dispatched to that function, is refused with `CODE_FAILED_PRECONDITION`, and
+  never reaches the provider. The runtime's own safe-state calls (its software
+  stop and startup safe state) are exempt from both. Earlier releases read
+  neither.
+- Leases are not implemented. `requires_lease` is reported to clients, and the
+  runtime logs a warning at discovery and calls the function without a lease. A
+  provider MUST NOT rely on `requires_lease` for exclusive access.
 - Providers MAY defensively reject calls that violate policy metadata, but
   Anolis MUST NOT rely on provider enforcement.
 
