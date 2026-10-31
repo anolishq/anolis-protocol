@@ -131,7 +131,7 @@ jobs:
     name: Docs
     permissions:
       contents: read
-    uses: anolishq/.github/.github/workflows/docs-check.yml@7b20551d1532b9e4f1264c9e966fa6ebbf098d75 # v2
+    uses: anolishq/.github/.github/workflows/docs-check.yml@0afd073b878c469f78a52f24020b1c3a49ae4fee # v2
 
   ok:
     name: ok
