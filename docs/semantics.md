@@ -220,6 +220,13 @@ For any device type that declares at least one signal, a provider MUST define a
 
 This requirement ensures predictable behavior across providers.
 
+*How the Anolis runtime polls (non-normative):* it does not poll the default
+signals. It polls, by explicit `signal_ids`, every signal whose
+`SignalSpec.poll_hint_hz` is above 0, at its own configured interval, and
+serves device state only from those reads. A signal with `poll_hint_hz` 0 is
+never polled and does not appear in the runtime's state. A provider meant for
+Anolis sets a positive `poll_hint_hz` on every signal it wants shown.
+
 ### 7.3 Freshness hints
 
 If `ReadSignalsRequest.min_timestamp` is provided:

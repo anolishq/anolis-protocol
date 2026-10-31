@@ -63,6 +63,12 @@ These concerns are handled by Anolis or deployment-specific infrastructure.
 - `semantics.md`  
   Normative behavioral semantics: roles, responsibilities, caching rules,
   error handling, framing guidance, and compatibility rules.
+- `profiles/framed-stdio-v1.md`  
+  The stdio transport binding: framing, the Hello metadata a provider
+  advertises, and stdout/stderr use.
+- `profiles/anolis-executable-profile-v1.md`  
+  What an Anolis provider executable accepts on its command line, such as
+  `--config` and `--check-host`.
 
 ---
 

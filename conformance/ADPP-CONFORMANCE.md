@@ -35,7 +35,7 @@ pip install "anolis-protocol[conformance] @ https://github.com/anolishq/anolis-p
 anolis-adpp-conformance \
   --provider-bin ./build/.../anolis-provider-X \
   --provider-config config/conformance.yaml \
-  --provider-profile conformance.toml
+  --provider-profile config/conformance.toml
 ```
 
 `--provider-profile` points at a manifest **owned by the provider repo** — the

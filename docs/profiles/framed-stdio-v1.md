@@ -67,5 +67,6 @@ A provider MUST NOT, on malformed input:
   read/call semantics).
 - `profiles/anolis-executable-profile-v1.md` — Anolis executable conventions
   (an organizational acceptance profile, **not** ADPP conformance).
-- `conformance/ADPP-CONFORMANCE.md` — the executable harness (non-normative; it
-  asserts the documents above).
+- [`conformance/ADPP-CONFORMANCE.md`](https://github.com/anolishq/anolis-protocol/blob/main/conformance/ADPP-CONFORMANCE.md)
+  — the executable harness and how to run it (non-normative; it asserts the
+  documents above).
