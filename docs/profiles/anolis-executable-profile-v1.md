@@ -13,8 +13,9 @@ framed-stdio (transport) tests.
 
 ## 1. CLI surface
 
-- `--config <path>` — start the provider with the given config (the runtime
-  launches the binary this way).
+- `--config <path>` — start the provider with the given config. The runtime
+  passes the `args` its own config lists for the provider and nothing else, so
+  that list carries `--config <path>`.
 - `--version` — print a version string (containing a dotted `X.Y[.Z]` token) and
   exit `0`.
 - `--check-config <path>` — validate a config without starting; exit `0` on a

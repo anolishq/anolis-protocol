@@ -86,7 +86,8 @@ message SignalSpec {
   ValueType value_type = 4;
   // Engineering unit, e.g. "°C", "rpm", "V".
   string unit = 5;
-  // Suggested polling frequency in Hz. Advisory only.
+  // Suggested polling frequency in Hz. The rate is advisory. The Anolis runtime
+  // polls only signals whose hint is above 0 (semantics.md §7.2).
   double poll_hint_hz = 6;
   // Duration in milliseconds after which a value should be considered stale.
   uint32 stale_after_ms = 7;
