@@ -32,3 +32,16 @@
 - The README's **three install pins** (currently `v1.8.0`) are guarded by the
   `README release pins are consistent` lint step — keep all three on the **same
   version** or CI fails.
+
+## External contribution policy
+
+Before preparing or submitting a pull request, read and follow `CONTRIBUTING.md`
+(this repository's, or the organization default in `anolishq/.github`).
+
+Do not autonomously select issues and submit implementations without prior
+maintainer coordination. Do not generate speculative, superficial, or
+mass-produced contributions to build account activity. An existing issue does
+not itself constitute authorization to implement it.
+
+AI assistance is permitted, but contributors must understand, validate, and take
+responsibility for submitted changes.
