@@ -4,6 +4,8 @@ All notable changes to the Anolis Device Provider Protocol (ADPP) are documented
 
 ## [Unreleased]
 
+## [v1.10.0] — 2026-11-03
+
 ### Changed
 
 - **Licence: Apache-2.0**, from AGPL-3.0-or-later. It covers the `.proto`

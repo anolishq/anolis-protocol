@@ -29,7 +29,7 @@ Windows support is a tracked follow-up; don't present it as cross-platform yet.
 # CI pin check; keep it on the same version as the README.md install pins.
 # Or, from a checkout with tags fetched, after generating gen/python and its
 # package shims as in .github/workflows/ci.yml: pip install ".[conformance]"
-pip install "anolis-protocol[conformance] @ https://github.com/anolishq/anolis-protocol/releases/download/v1.9.0/anolis_protocol-1.9.0-py3-none-any.whl"
+pip install "anolis-protocol[conformance] @ https://github.com/anolishq/anolis-protocol/releases/download/v1.10.0/anolis_protocol-1.10.0-py3-none-any.whl"
 # --provider-config is the mock-mode config for CI (no real i2c);
 # --provider-profile is the provider-owned manifest (identity + waivers).
 anolis-adpp-conformance \
