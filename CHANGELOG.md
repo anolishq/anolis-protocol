@@ -4,6 +4,8 @@ All notable changes to the Anolis Device Provider Protocol (ADPP) are documented
 
 ## [Unreleased]
 
+## [v1.9.0] — 2026-11-02
+
 ### Added
 
 - **Executable profile §1: `--check-config` exits `1` on an invalid config**
