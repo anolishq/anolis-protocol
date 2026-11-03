@@ -15,7 +15,7 @@ include(FetchContent)
 FetchContent_Declare(
     anolis_protocol
     URL https://github.com/anolishq/anolis-protocol/releases/download/v1.10.0/anolis-protocol-1.10.0-source.tar.gz
-    URL_HASH SHA256=9eec558bda701c1efdd4c74506eae758e370d995134a40f5ffd1fbe68bc993e1
+    URL_HASH SHA256=77c8baf8b423682e2f1fda771540a24ff0cb0843a3d7540607991f662218419a
 )
 FetchContent_MakeAvailable(anolis_protocol)
 # proto files are at ${anolis_protocol_SOURCE_DIR}/proto/
