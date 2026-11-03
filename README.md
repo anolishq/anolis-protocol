@@ -14,7 +14,7 @@ Canonical protocol contracts for the Anolis ecosystem.
 include(FetchContent)
 FetchContent_Declare(
     anolis_protocol
-    URL https://github.com/anolishq/anolis-protocol/releases/download/v1.8.0/anolis-protocol-1.8.0-source.tar.gz
+    URL https://github.com/anolishq/anolis-protocol/releases/download/v1.9.0/anolis-protocol-1.9.0-source.tar.gz
     URL_HASH SHA256=1823afe8ee750575a23043ce1757e5a859a571bdffd953ba42675a951967d215
 )
 FetchContent_MakeAvailable(anolis_protocol)
@@ -28,7 +28,7 @@ Replace the version and hash from the [latest release](https://github.com/anolis
 Each tagged release attaches a built wheel (generated protobuf bindings) to the [GitHub Release](https://github.com/anolishq/anolis-protocol/releases/latest) (there is no PyPI publish). Pin it by URL:
 
 ```sh
-pip install "anolis-protocol @ https://github.com/anolishq/anolis-protocol/releases/download/v1.8.0/anolis_protocol-1.8.0-py3-none-any.whl"
+pip install "anolis-protocol @ https://github.com/anolishq/anolis-protocol/releases/download/v1.9.0/anolis_protocol-1.9.0-py3-none-any.whl"
 ```
 
 The cross-provider **conformance harness** (the `[conformance]` extra + the
@@ -36,7 +36,7 @@ The cross-provider **conformance harness** (the `[conformance]` extra + the
 (releases up to and including v1.2.0 predate it):
 
 ```sh
-pip install "anolis-protocol[conformance] @ https://github.com/anolishq/anolis-protocol/releases/download/v1.8.0/anolis_protocol-1.8.0-py3-none-any.whl"
+pip install "anolis-protocol[conformance] @ https://github.com/anolishq/anolis-protocol/releases/download/v1.9.0/anolis_protocol-1.9.0-py3-none-any.whl"
 # or, from a checkout with tags fetched, after generating gen/python and its
 # package shims as in .github/workflows/ci.yml: pip install ".[conformance]"
 ```
