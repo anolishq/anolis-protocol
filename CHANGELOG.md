@@ -4,6 +4,14 @@ All notable changes to the Anolis Device Provider Protocol (ADPP) are documented
 
 ## [Unreleased]
 
+### Changed
+
+- **Licence: Apache-2.0**, from AGPL-3.0-or-later. It covers the `.proto`
+  schema, the generated bindings and the conformance harness, which ship in one
+  wheel. Providers are built from this schema in any language, so a provider
+  author can now use it under permissive terms; the runtime and Workbench stay
+  AGPL-3.0. Releases up to and including v1.9.0 remain AGPL-3.0-or-later. (#91)
+
 ## [v1.9.0] — 2026-11-02
 
 ### Added
