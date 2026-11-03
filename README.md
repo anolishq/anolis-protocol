@@ -138,3 +138,13 @@ buf generate
 ## Future Work
 
 - long-term: add `CMakeLists.txt` + cmake config; cut consumers to `find_package` — defer until FetchContent causes pain
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE). This covers the schema, the generated
+bindings and the conformance harness, which ship together in one wheel.
+Contributions are accepted under the same licence (Apache-2.0 §5).
+
+Releases up to and including v1.9.0 were published under AGPL-3.0-or-later and
+remain available under it. The Anolis runtime and Workbench stay AGPL-3.0; a
+provider is a separate process, so their licence does not extend to it.

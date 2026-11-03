@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "anolis-protocol"
 dynamic = ["version"]
 description = "Generated Python bindings for the Anolis Device Provider Protocol (ADPP)"
-license = { text = "AGPL-3.0-or-later" }
+license = { text = "Apache-2.0" }
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
