@@ -50,9 +50,11 @@ There are two explicit modes, and **a misconfigured run never reports green**:
 - **self-test mode** — `anolis-adpp-conformance --self-test` runs only the
   hermetic verifier self-tests (no provider args allowed).
 
-The console script loads the plugin explicitly and defaults to the gating set
-(`-m "not experimental"`). The plugin is **not** a global `pytest11` entry point,
-so installing the wheel never affects unrelated pytest runs.
+The console script loads the plugin explicitly. The plugin defaults to the gating
+set (`-m "not experimental"`) when no `-m` is given, so the console script and
+direct `pytest -p anolis_conformance.plugin` use gate the same tests; CI asserts
+that both collect the same set. The plugin is **not** a global `pytest11` entry
+point, so installing the wheel never affects unrelated pytest runs.
 
 ## Three separate contracts
 
@@ -69,13 +71,21 @@ not conflated):
      `function_id`** (§6.2). The harness does **not** require rejecting a
      conflict.
    - Unsupported version → `FAILED_PRECONDITION` **or** `UNIMPLEMENTED` (§3).
+
+   Also here, because they apply at every level: `GetHealth` returns `CODE_OK`
+   with a `ProviderHealth` whose `state` is defined and not `STATE_UNSPECIFIED`,
+   and its device entries name listed devices (§9.1); and when Hello advertises
+   `conformance_level`, it matches the manifest (*Conformance levels*).
 2. **ADPP framed-stdio profile** (`test_framed_stdio.py`) — `uint32_le` framing,
    the 1 MiB cap, fragmentation/coalescing, and **controlled** handling of a
    malformed stream: a well-formed framed error response, or a clean documented
    exit (codes 0/2/3). A crash (process killed by a signal → negative return
    code), a hang, or an over-cap/malformed response is a **failure**.
 3. **Anolis provider executable profile** (`test_executable_profile.py`) — CLI
-   surface (`--version`, `--check-config`), the WaitReady diagnostics the runtime
+   surface (`--version`; `--check-config` accepts the given config and rejects an
+   unparseable one with exit `1`; `--config-schema` and `--check-host`, which skip
+   when the verb is not implemented but fail when it crashes), the WaitReady
+   diagnostics the runtime
    reads (`init_time_ms`), capability conventions (snake_case `signal_id`s,
    per-type `function_id`s from 1), and process lifecycle. **These are Anolis
    conventions, not ADPP requirements** — a binary can be ADPP-conformant and
@@ -98,7 +108,14 @@ and are what make the verifier trustworthy. They cover:
   garbage with `CODE_OK`, with `CODE_UNSPECIFIED`, or with a response-then-crash
   — each must be rejected, while a framed *error* response is accepted;
 - **the profile loader** — valid manifests, defaults, and every rejection path
-  (missing/invalid fields, unknown keys, malformed TOML).
+  (missing/invalid fields, unknown keys, malformed TOML);
+- **the `GetHealth` validator** (`checks.assert_get_health`) against every bad
+  response shape;
+- **end to end** — the console script run in provider mode against a small
+  scripted provider, once conformant and once with one misbehavior switched on,
+  requiring `PASSED` and then `FAILED` (not `SKIPPED`): `GetHealth` without
+  `ProviderHealth`, a crash on `--config-schema` or `--check-host`, a Hello level
+  that disagrees with an L1 manifest, and `--check-config` accepting any config.
 
 The CI also asserts at the command level that a misconfigured invocation (no
 mode, partial provider args, or a waiver targeting a non-executable-profile test)
@@ -138,8 +155,8 @@ in its `conformance.toml` (`conformance_level`, default 1):
   conventions.
 - **L2** (`test_l2.py`, opt-in): pre-Hello → `FAILED_PRECONDITION` (every request
   kind); bounds → `OUT_OF_RANGE` (inclusive; all numeric types) and non-finite →
-  `INVALID_ARGUMENT`; deadlines; OK-read value `timestamp`/`quality`;
-  Hello↔manifest level agreement.
+  `INVALID_ARGUMENT`; deadlines; OK-read value `timestamp`/`quality`.
+  (Hello↔manifest level agreement applies at every level, so it runs at L1.)
 
 **L2 behavior the harness does NOT exercise generically** — verify manually or
 with a provider-specific fixture; the suite does not claim these:

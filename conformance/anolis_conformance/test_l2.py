@@ -1,8 +1,9 @@
 """ADPP conformance **level 2** ([L2]) tests.
 
 The strengthened bar from `semantics.md`: pre-Hello handling (§3.2), bounds →
-`OUT_OF_RANGE` + non-finite → `INVALID_ARGUMENT` (§8.3), deadlines (§8.4), value
-timestamp/quality (§7.1), and Hello/manifest level agreement. The whole module is
+`OUT_OF_RANGE` + non-finite → `INVALID_ARGUMENT` (§8.3), deadlines (§8.4) and value
+timestamp/quality (§7.1). Hello/manifest level agreement applies at every level,
+so it lives in test_adpp_core.py. The whole module is
 marked `conformance_level(2)`, so the harness collects it only when the provider's
 manifest declares `conformance_level >= 2`. An L1 provider never runs these.
 
@@ -20,7 +21,6 @@ import pytest
 
 from .checks import assert_signalvalues_l2
 from .client import AdppClient
-from .profiles import SUPPORTED_CONFORMANCE_LEVEL
 
 pytestmark = pytest.mark.conformance_level(2)
 
@@ -306,23 +306,4 @@ def test_l2_malformed_deadline_is_invalid_argument(
     assert resp.status.code == codes.INVALID_ARGUMENT, (
         f"a malformed deadline (nanos out of range) must yield CODE_INVALID_ARGUMENT; "
         f"got {status_text(resp)}"
-    )
-
-
-# ---- level-model: Hello metadata must agree with the manifest ----------
-def test_l2_hello_conformance_level_matches_manifest(
-    client: AdppClient, profile, status_text
-) -> None:
-    advertised = dict(client.hello().hello.metadata).get("conformance_level")
-    if advertised is None:
-        pytest.skip("provider does not advertise conformance_level (SHOULD, not MUST)")
-    try:
-        level = int(advertised)
-    except ValueError:
-        pytest.fail(f"Hello conformance_level metadata {advertised!r} is not an integer")
-    assert 1 <= level <= SUPPORTED_CONFORMANCE_LEVEL, (
-        f"Hello advertises unsupported conformance_level {level}"
-    )
-    assert level == profile.conformance_level, (
-        f"Hello conformance_level {level} != manifest conformance_level {profile.conformance_level}"
     )
