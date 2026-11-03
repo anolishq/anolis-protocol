@@ -4,7 +4,39 @@ All notable changes to the Anolis Device Provider Protocol (ADPP) are documented
 
 ## [Unreleased]
 
+### Added
+
+- **Executable profile §1: `--check-config` exits `1` on an invalid config**
+  (one that cannot be read or parsed, or that the provider would refuse to start
+  with), matching the runtime's own `--check-config`. New waivable test
+  `test_cli_check_config_rejects_invalid` runs the verb on a document that is not
+  valid YAML or JSON and requires exit `1`; until now only acceptance of a valid
+  config was tested. (#90)
+
 ### Fixed
+
+- **`GetHealth` is gated at L1** (semantics.md §9.1). `test_get_health_well_formed`
+  was marked `experimental`, so the default run never called it, and it checked
+  only that a status was present. It now runs by default and requires `CODE_OK`,
+  a `ProviderHealth` with a defined state other than `STATE_UNSPECIFIED`, and
+  device entries that name listed devices. Its comment no longer says the runtime
+  never calls `GetHealth`: the runtime's health snapshot does. (#81)
+- The default `not experimental` filter moved from the console script into the
+  plugin, so `anolis-adpp-conformance` and direct `pytest -p
+  anolis_conformance.plugin` use gate the same tests. CI checks that both collect
+  the same set. (#81)
+- **A crash on `--config-schema` or `--check-host` fails** instead of skipping as
+  "verb not implemented". A provider killed by a signal has crashed; a provider
+  that does not implement the verb exits non-zero as a usage error. (#89, from
+  #82)
+- **Hello/manifest level agreement is checked at L1.** semantics.md makes it a
+  requirement at every level, but it ran only for L2 manifests;
+  `test_l2_hello_conformance_level_matches_manifest` is now
+  `test_hello_conformance_level_matches_manifest` in the core suite. (#89, from
+  #82)
+- Verifier self-tests now include end-to-end cases: the console script runs
+  against a small scripted provider, conformant and then with one misbehavior
+  switched on, and each changed test must report `PASSED` and then `FAILED`.
 
 - Verifier self-tests: the `crash_signal` and `respond_then_crash` fake
   providers now die by `SIGKILL` instead of `os.abort()`. `SIGABRT` dumps

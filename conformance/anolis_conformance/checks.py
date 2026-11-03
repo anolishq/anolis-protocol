@@ -81,6 +81,43 @@ def assert_freshness_hint_not_fatal(read_response, codes: SimpleNamespace) -> No
 _SNAKE_CASE = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
+def assert_get_health(response, codes: SimpleNamespace, listed_device_ids: set[str]) -> None:
+    """semantics.md §9.1: ``GetHealth`` MUST return ``ProviderHealth`` (L1). The
+    response is OK and carries a ``get_health`` payload whose ``provider`` sets a
+    defined state other than ``STATE_UNSPECIFIED``; any per-device entries name a
+    device from ``ListDevices``."""
+    assert_status_present(response)
+    if response.status.code != codes.OK:
+        raise ConformanceFailure(
+            f"GetHealth must succeed; got status code {response.status.code} "
+            f"message={response.status.message!r}"
+        )
+    if not response.HasField("get_health"):
+        raise ConformanceFailure("GetHealth returned OK with no get_health payload")
+    health = response.get_health
+    if not health.HasField("provider"):
+        raise ConformanceFailure("GetHealth must return ProviderHealth (semantics.md §9.1)")
+    state = health.provider.state
+    defined = set(health.provider.DESCRIPTOR.fields_by_name["state"].enum_type.values_by_number)
+    if state not in defined:
+        raise ConformanceFailure(f"ProviderHealth.state {state} is not a value defined by the schema")
+    if state == 0:  # STATE_UNSPECIFIED
+        raise ConformanceFailure("ProviderHealth.state must not be STATE_UNSPECIFIED")
+    unknown = {d.device_id for d in health.devices} - listed_device_ids
+    if unknown:
+        raise ConformanceFailure(f"GetHealth reports health for devices ListDevices does not list: {sorted(unknown)}")
+
+
+def assert_cli_verb_not_crashed(verb: str, returncode: int, stderr: str = "") -> None:
+    """A provider that dies by a signal on a CLI verb has crashed. That is a
+    failure, never the "verb not implemented" usage error that skips."""
+    if returncode < 0:
+        raise ConformanceFailure(
+            f"`{verb}` crashed (killed by signal {-returncode}); a provider that does not "
+            f"implement the verb exits non-zero as a usage error\n{stderr[-2000:]}"
+        )
+
+
 def assert_signal_ids_snake_case(device_id: str, capabilities) -> None:
     """Anolis executable profile — capability convention: every ``signal_id`` is
     snake_case (``^[a-z][a-z0-9_]*$``: lowercase letter first, then lowercase

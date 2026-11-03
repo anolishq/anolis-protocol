@@ -43,6 +43,12 @@ def pytest_configure(config: pytest.Config) -> None:
         ">= n. Untagged tests are level 1.",
     )
 
+    # The gating set excludes experimental checks unless the caller selects
+    # markers with -m. Applied here, not in the console script, so loading the
+    # plugin directly (`pytest -p anolis_conformance.plugin`) gates the same set.
+    if not config.option.markexpr:
+        config.option.markexpr = "not experimental"
+
     self_test = config.getoption("--self-test")
     present = [opt for opt in _PROVIDER_OPTS if config.getoption(opt)]
 

@@ -117,7 +117,13 @@ jobs:
           [ "$n1" -eq 0 ] || fail "L1 manifest must not collect L2 tests (collected $n1)"
           [ "$n2" -gt 0 ] || fail "L2 manifest must collect L2 tests (collected $n2)"
           [ "$cum" -gt 0 ] || fail "L2 manifest must still collect L1 tests — levels are cumulative (collected $cum)"
-          echo "OK: misconfig nonzero; unsupported level rejected; gating L1=$n1 L2=$n2 cumulative-L1=$cum"
+          # The console script and direct plugin use must gate the same set: the
+          # default marker filter lives in the plugin, not the entry point (#81).
+          via_cli="$(anolis-adpp-conformance --provider-bin "$real_bin" --provider-config "$real_cfg" --provider-profile /tmp/l2.toml --collect-only -q -p no:cacheprovider 2>/dev/null | grep -c '::')"
+          via_plugin="$(python -m pytest -p anolis_conformance.plugin --pyargs anolis_conformance --provider-bin "$real_bin" --provider-config "$real_cfg" --provider-profile /tmp/l2.toml --collect-only -q -p no:cacheprovider 2>/dev/null | grep -c '::')"
+          [ "$via_cli" -gt 0 ] || fail "console script collected nothing"
+          [ "$via_cli" -eq "$via_plugin" ] || fail "entry points collect different sets (console script $via_cli, direct plugin $via_plugin)"
+          echo "OK: misconfig nonzero; unsupported level rejected; gating L1=$n1 L2=$n2 cumulative-L1=$cum; entry points agree ($via_cli)"
       # NOTE: cross-provider conformance (running the harness against a real
       # provider binary) lives in each PROVIDER repo's CI — the provider pulls
       # this pinned wheel + supplies its own --provider-profile. The contract

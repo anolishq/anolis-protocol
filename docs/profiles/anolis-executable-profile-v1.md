@@ -19,7 +19,10 @@ framed-stdio (transport) tests.
 - `--version` — print a version string (containing a dotted `X.Y[.Z]` token) and
   exit `0`.
 - `--check-config <path>` — validate a config without starting; exit `0` on a
-  valid config.
+  valid config and `1` on an invalid one (one that cannot be read or parsed, or
+  that the provider would refuse to start with), as the runtime's own
+  `--check-config` does. The harness checks rejection with a document that is not
+  valid YAML or JSON; schema-level rejection is the provider's to test.
 - `--config-schema` — print the provider's config **JSON Schema** in a versioned
   envelope on stdout and exit `0`; **configless** (takes no `--config` — you use
   it to learn how to author config). See §2.
@@ -146,7 +149,8 @@ A provider that does not implement the verb rejects it as a usage error: it
 exits non-zero and prints no JSON on stdout (often nothing, sometimes a usage
 message). The harness treats a non-zero exit without JSON on stdout as "not
 implemented" and skips, so the convention adopts without coordination (as for
-`--config-schema`).
+`--config-schema`). A provider killed by a signal on either verb has crashed,
+not declined the verb, and fails.
 
 **At startup** a provider runs the same checks. On an `unmet` requirement it
 stays up and **not ready** rather than exiting, and reports what is unmet through

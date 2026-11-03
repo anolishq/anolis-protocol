@@ -19,6 +19,7 @@ from .checks import (
     assert_config_schema_envelope,
     assert_controlled_malformed,
     assert_freshness_hint_not_fatal,
+    assert_get_health,
     assert_function_ids_per_type_from_one,
     assert_signal_ids_snake_case,
     assert_signalvalues_l2,
@@ -303,6 +304,44 @@ def test_selftest_freshness_hint_validator(protocol, codes) -> None:
             assert_freshness_hint_not_fatal(resp, codes)
 
 
+# --- GetHealth validator (the real §9.1 check the core suite runs) ---
+
+
+def _health(protocol, codes, *, state=None, devices=(), status="OK", payload=True):
+    resp = protocol.Response()
+    resp.status.code = getattr(codes, status)
+    if payload:
+        resp.get_health.SetInParent()
+    if state is not None:
+        resp.get_health.provider.state = state
+    for device_id in devices:
+        resp.get_health.devices.add().device_id = device_id
+    return resp
+
+
+def test_selftest_get_health_validator(protocol, codes) -> None:
+    ph = protocol.ProviderHealth
+    # §9.1: a ProviderHealth with a defined, non-UNSPECIFIED state passes, for every state.
+    for state in (ph.STATE_OK, ph.STATE_DEGRADED, ph.STATE_FAULT):
+        assert_get_health(_health(protocol, codes, state=state), codes, set())  # must NOT raise
+    # Device entries naming listed devices pass.
+    assert_get_health(_health(protocol, codes, state=ph.STATE_OK, devices=["d1"]), codes, {"d1", "d2"})
+
+    for bad, listed in (
+        (_health(protocol, codes, state=ph.STATE_OK, status="INTERNAL"), set()),  # not OK
+        (_health(protocol, codes, payload=False), set()),  # OK with no get_health payload
+        (_health(protocol, codes, state=ph.STATE_UNSPECIFIED), set()),  # ProviderHealth, state unset
+        (_health(protocol, codes, state=999), set()),  # undefined state value
+        (_health(protocol, codes, state=ph.STATE_OK, devices=["ghost"]), {"d1"}),  # unknown device
+    ):
+        with pytest.raises(ConformanceFailure):
+            assert_get_health(bad, codes, listed)
+    # A payload with no ProviderHealth names what is missing, not only that the
+    # (defaulted) state is unspecified: that is what a provider author has to fix.
+    with pytest.raises(ConformanceFailure, match="must return ProviderHealth"):
+        assert_get_health(_health(protocol, codes), codes, set())
+
+
 # --- capability-convention validators (executable profile §5) ---
 
 
@@ -481,3 +520,123 @@ def test_selftest_check_host_implemented() -> None:
         ("", 0, True),  # exit 0 claims an answer, so the validator must see it
     ):
         assert check_host_implemented(stdout, code) is implemented, (stdout[:20], code)
+
+
+# --- end to end: the real provider-mode tests against a scripted provider ---
+#
+# The validator self-tests above prove a check rejects a bad value. These prove the
+# provider-mode TEST that uses it reports FAILED, not SKIPPED or PASSED, when a
+# provider misbehaves: they run `anolis-adpp-conformance` as a subprocess against
+# a small conformant provider, with one misbehavior switched on per case. The good
+# case runs too, so a test that fails for an unrelated reason is caught.
+
+_MINI_SRC = r'''import os, signal, struct, sys
+mode = os.environ.get("MINI_MODE", "good")
+args = sys.argv[1:]
+verb = args[0] if args else ""
+if verb == "--version":
+    print("mini 1.0.0"); sys.exit(0)
+if verb == "--config-schema":
+    if mode == "crash_config_schema":
+        os.kill(os.getpid(), signal.SIGKILL)
+    print('{"config_schema_version": 1, "provider": "mini", "schema": {"type": "object"}}'); sys.exit(0)
+if verb == "--check-host":
+    if mode == "crash_check_host":
+        os.kill(os.getpid(), signal.SIGKILL)
+    print('{"check_host_version": 1, "provider": "mini", "requirements": []}'); sys.exit(0)
+if verb == "--check-config":
+    if mode == "accept_any_config":
+        sys.exit(0)
+    with open(args[1]) as f:
+        sys.exit(0 if f.read().strip() == "{}" else 1)  # the only valid config is {}
+import protocol_pb2 as p
+def read_exact(n):
+    b = b""
+    while len(b) < n:
+        c = sys.stdin.buffer.read(n - len(b))
+        if not c:
+            sys.exit(0)
+        b += c
+    return b
+out = sys.stdout.buffer
+while True:
+    req = p.Request(); req.ParseFromString(read_exact(struct.unpack("<I", read_exact(4))[0]))
+    resp = p.Response(); resp.request_id = req.request_id
+    resp.status.code = p.Status.Code.Value("CODE_OK")
+    kind = req.WhichOneof("payload")
+    if kind == "hello":
+        resp.hello.protocol_version = "v1"; resp.hello.provider_name = "mini"
+        md = resp.hello.metadata
+        md["transport"] = "stdio+uint32_le"; md["max_frame_bytes"] = "1048576"
+        md["supports_wait_ready"] = "false"
+        md["conformance_level"] = "2" if mode == "level_disagrees" else "1"
+    elif kind == "list_devices":
+        resp.list_devices.SetInParent()
+    elif kind == "get_health":
+        if mode == "health_no_provider":
+            resp.get_health.SetInParent()
+        else:
+            resp.get_health.provider.state = p.ProviderHealth.STATE_OK
+    else:
+        resp.status.code = p.Status.Code.Value("CODE_UNIMPLEMENTED")
+    data = resp.SerializeToString()
+    out.write(struct.pack("<I", len(data)) + data); out.flush()
+'''
+
+
+@pytest.fixture(scope="session")
+def mini_provider(tmp_path_factory) -> str:
+    path = tmp_path_factory.mktemp("mini") / "mini_provider.py"
+    path.write_text(f"#!{sys.executable}\n{_MINI_SRC}")
+    path.chmod(path.stat().st_mode | stat.S_IEXEC | stat.S_IRWXU)
+    return str(path)
+
+
+def _harness_outcome(mini_provider: str, tmp_path, mode: str, test_name: str) -> str:
+    """Run one provider-mode test through the console-script entry point and
+    return its outcome: passed, failed, skipped or error (from the JUnit report)."""
+    import subprocess
+    import xml.etree.ElementTree as ET
+
+    cfg = tmp_path / "mini.yaml"
+    cfg.write_text("{}\n")
+    profile = tmp_path / "mini.toml"
+    profile.write_text('provider_name = "mini"\nhas_mock_devices = false\nconformance_level = 1\n')
+    report = tmp_path / f"{mode}-{test_name}.xml"
+    env = {**os.environ, "MINI_MODE": mode}
+    proc = subprocess.run(
+        [
+            sys.executable, "-c",
+            "import sys; from anolis_conformance.cli import main; sys.exit(main())",
+            "--provider-bin", mini_provider,
+            "--provider-config", str(cfg),
+            "--provider-profile", str(profile),
+            "-k", test_name, f"--junitxml={report}", "-p", "no:cacheprovider",
+        ],
+        capture_output=True, text=True, timeout=120, cwd=tmp_path, env=env,
+    )
+    cases = [c for c in ET.parse(report).iter("testcase") if c.get("name") == test_name] if report.exists() else []
+    assert len(cases) == 1, (
+        f"expected exactly one {test_name} result (mode {mode}); got {len(cases)}\n{proc.stdout[-3000:]}"
+    )
+    for tag in ("failure", "error", "skipped"):
+        if cases[0].find(tag) is not None:
+            return {"failure": "failed", "error": "error", "skipped": "skipped"}[tag]
+    return "passed"
+
+
+@pytest.mark.parametrize(
+    "test_name,bad_mode",
+    [
+        ("test_get_health_well_formed", "health_no_provider"),
+        ("test_cli_config_schema", "crash_config_schema"),
+        ("test_cli_check_host", "crash_check_host"),
+        ("test_hello_conformance_level_matches_manifest", "level_disagrees"),
+        ("test_cli_check_config_rejects_invalid", "accept_any_config"),
+    ],
+)
+def test_selftest_e2e_gating(mini_provider, tmp_path, test_name, bad_mode) -> None:
+    good = _harness_outcome(mini_provider, tmp_path, "good", test_name)
+    assert good == "passed", f"{test_name} must pass a conformant provider at L1; got {good}"
+    bad = _harness_outcome(mini_provider, tmp_path, bad_mode, test_name)
+    assert bad == "failed", f"{test_name} must FAIL a provider in mode {bad_mode} at L1; got {bad}"

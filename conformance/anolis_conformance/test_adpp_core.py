@@ -11,8 +11,9 @@ import time
 import pytest
 
 from . import spec
-from .checks import assert_freshness_hint_not_fatal, assert_status_present
+from .checks import assert_freshness_hint_not_fatal, assert_get_health, assert_status_present
 from .client import AdppClient
+from .profiles import SUPPORTED_CONFORMANCE_LEVEL
 
 
 # ---- handshake / version ------------------------------------------------
@@ -23,6 +24,26 @@ def test_hello_v1_ok(client: AdppClient, profile, codes, status_text) -> None:
     assert resp.request_id == 1, "Hello response must echo request_id"
     assert resp.hello.protocol_version == spec.PROTOCOL_VERSION
     assert resp.hello.provider_name == profile.expected_provider_name
+
+
+def test_hello_conformance_level_matches_manifest(client: AdppClient, profile) -> None:
+    # semantics.md "Conformance levels": when a provider advertises
+    # conformance_level in Hello metadata AND declares one in its manifest, the two
+    # MUST agree, at every level. Advertising is a SHOULD (absent means 1), so a
+    # provider that does not advertise skips.
+    advertised = dict(client.hello().hello.metadata).get("conformance_level")
+    if advertised is None:
+        pytest.skip("provider does not advertise conformance_level (SHOULD, not MUST)")
+    try:
+        level = int(advertised)
+    except ValueError:
+        pytest.fail(f"Hello conformance_level metadata {advertised!r} is not an integer")
+    assert 1 <= level <= SUPPORTED_CONFORMANCE_LEVEL, (
+        f"Hello advertises unsupported conformance_level {level}"
+    )
+    assert level == profile.conformance_level, (
+        f"Hello conformance_level {level} != manifest conformance_level {profile.conformance_level}"
+    )
 
 
 def test_hello_unsupported_version_rejected(client: AdppClient, codes, status_text) -> None:
@@ -335,10 +356,9 @@ def test_call_function_id_preferred_over_name(ready_client: AdppClient, codes, s
     )
 
 
-# ---- health (experimental, opt-in only — deselected from gating) -------
-@pytest.mark.experimental
-def test_get_health_well_formed(ready_client: AdppClient) -> None:
-    # GetHealth is defined but the runtime never calls it (experimental). This
-    # test is deselected from the default gating run (see pytest.ini markers).
-    resp = ready_client.get_health()
-    assert resp.HasField("status"), "GetHealth must return a status"
+# ---- health -------------------------------------------------------------
+def test_get_health_well_formed(ready_client: AdppClient, codes) -> None:
+    # semantics.md §9.1: GetHealth MUST return ProviderHealth (L1). The runtime
+    # calls it for its health snapshot (anolis core/health/health_snapshot.cpp).
+    listed = {d.device_id for d in ready_client.list_devices().list_devices.devices}
+    assert_get_health(ready_client.get_health(), codes, listed)

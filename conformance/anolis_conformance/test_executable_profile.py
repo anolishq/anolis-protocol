@@ -17,6 +17,7 @@ import pytest
 
 from .checks import (
     assert_check_host_envelope,
+    assert_cli_verb_not_crashed,
     assert_config_schema_envelope,
     assert_function_ids_per_type_from_one,
     assert_signal_ids_snake_case,
@@ -99,12 +100,32 @@ def test_cli_check_config_ok(provider_bin, provider_config) -> None:
     assert proc.returncode == 0, f"`--check-config` on a valid config must exit 0; got {proc.returncode}"
 
 
+def test_cli_check_config_rejects_invalid(provider_bin, tmp_path) -> None:
+    # §1: `--check-config` exits 1 on an invalid config. The harness cannot know a
+    # provider's schema, so it uses a document no provider can accept: not valid
+    # YAML or JSON. Rejecting configs that parse but break the provider's own
+    # schema is the provider's to test.
+    invalid = tmp_path / "invalid-config.yaml"
+    invalid.write_text("{ this: is: not [valid yaml or json\n")
+    proc = subprocess.run(
+        [str(provider_bin), "--check-config", str(invalid)],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert_cli_verb_not_crashed("--check-config", proc.returncode, proc.stderr)
+    assert proc.returncode == 1, (
+        f"`--check-config` on an invalid config must exit 1; got {proc.returncode} ({proc.stderr[-200:]})"
+    )
+
+
 def test_cli_config_schema(provider_bin) -> None:
     # `--config-schema` is configless (§2). If the provider does not recognize the
     # verb it exits non-zero (a usage error) — SKIP, no waiver needed: this is how
-    # the convention adopts with zero coordination. If it exits 0 the envelope MUST
-    # be valid.
+    # the convention adopts with zero coordination. Death by a signal is a crash,
+    # not a usage error, and fails. If it exits 0 the envelope MUST be valid.
     proc = subprocess.run([str(provider_bin), "--config-schema"], capture_output=True, text=True, timeout=10)
+    assert_cli_verb_not_crashed("--config-schema", proc.returncode, proc.stderr)
     if proc.returncode != 0:
         pytest.skip("provider does not implement --config-schema (unrecognized verb)")
     assert_config_schema_envelope(proc.stdout)
@@ -114,6 +135,7 @@ def test_cli_check_host(provider_bin, provider_config) -> None:
     # `--check-host <config>` (§6). A provider without the verb rejects it as a
     # usage error — non-zero, and no JSON on stdout (shipped providers print their
     # usage text there) — and is SKIPPED, no waiver needed, as for --config-schema.
+    # Death by a signal is a crash, not a usage error, and fails.
     # Once it answers, the envelope MUST be valid and the exit code MUST agree with
     # the statuses. Whether the harness host meets the requirements is not
     # asserted: either answer is valid.
@@ -123,6 +145,7 @@ def test_cli_check_host(provider_bin, provider_config) -> None:
         text=True,
         timeout=10,
     )
+    assert_cli_verb_not_crashed("--check-host", proc.returncode, proc.stderr)
     if not check_host_implemented(proc.stdout, proc.returncode):
         pytest.skip("provider does not implement --check-host (usage error, no JSON on stdout)")
     assert_check_host_envelope(proc.stdout, proc.returncode)
