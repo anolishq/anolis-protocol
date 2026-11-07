@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
 
       - name: Lint protocol with Buf
-        uses: bufbuild/buf-action@8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3 # v1
+        uses: bufbuild/buf-action@37ac33d8960807670a6e9719080e885197b09cc6 # v1
         with:
           lint: true
           format: false
@@ -60,7 +60,7 @@ jobs:
         run: pip install build hatchling hatch-vcs
 
       - name: Install buf CLI
-        uses: bufbuild/buf-action@8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3 # v1
+        uses: bufbuild/buf-action@37ac33d8960807670a6e9719080e885197b09cc6 # v1
         with:
           setup_only: true
 
