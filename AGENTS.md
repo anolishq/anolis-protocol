@@ -29,9 +29,10 @@
 - The cross-provider **conformance harness ships INSIDE the wheel** (the
   `[conformance]` extra + `anolis-adpp-conformance` script) from **v1.3.0**
   onward — it is not a separate package.
-- The README's **three install pins** (currently `v1.10.0`) are guarded by the
-  `README release pins are consistent` lint step — keep all three on the **same
-  version** or CI fails.
+- The **install pins** in `README.md` and `conformance/ADPP-CONFORMANCE.md` are
+  checked by the `version-sync` job against the newest released heading in
+  `CHANGELOG.md` (`version-locations.txt`). A release PR that adds a
+  `## [vX.Y.Z]` heading must bump every pin to it, or CI fails.
 
 ## External contribution policy
 

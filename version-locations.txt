@@ -1,0 +1,10 @@
+# version-locations.txt for anolis-protocol
+# The version comes from the git tag (hatch-vcs), so the newest released
+# CHANGELOG heading stands in for it; every install pin must match.
+CHANGELOG.md:\A[\s\S]*?^## \[v([0-9]+\.[0-9]+\.[0-9]+)\]
+
+README.md:releases/download/v([0-9]+\.[0-9]+\.[0-9]+)/
+README.md:anolis-protocol-([0-9]+\.[0-9]+\.[0-9]+)-source\.tar\.gz
+README.md:anolis_protocol-([0-9]+\.[0-9]+\.[0-9]+)-py3-none-any\.whl
+conformance/ADPP-CONFORMANCE.md:releases/download/v([0-9]+\.[0-9]+\.[0-9]+)/
+conformance/ADPP-CONFORMANCE.md:anolis_protocol-([0-9]+\.[0-9]+\.[0-9]+)-py3-none-any\.whl

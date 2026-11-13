@@ -21,20 +21,16 @@ jobs:
           format: true
           breaking: true
           breaking_against: "https://github.com/anolishq/anolis-protocol.git#branch=main"
-      - name: README release pins are consistent
-        # Guards against the drift that left the three install pins on different
-        # stale releases. The version is tag-derived (hatch-vcs), so there is no
-        # manifest version to sync against; this just asserts the README's three
-        # release-asset URLs all reference the same version.
-        run: |
-          vers=$(grep -oE 'releases/download/v[0-9]+\.[0-9]+\.[0-9]+/' README.md \
-                 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -u)
-          n=$(printf '%s\n' "$vers" | grep -c .)
-          if [ "$n" -ne 1 ]; then
-            echo "::error::README install pins reference differing versions:"; printf '  %s\n' $vers
-            exit 1
-          fi
-          echo "README release pins all reference v$vers"
+
+  # The version is tag-derived (hatch-vcs), so version-locations.txt anchors on
+  # the newest released CHANGELOG heading and checks every install pin against it.
+  version-sync:
+    permissions:
+      contents: read
+    uses: anolishq/.github/.github/workflows/version-sync.yml@f4817837f29993c35b5350fbb5dfe2563437fcde # v2
+    with:
+      python-version: '3.12'
+      working-directory: '.'
 
   conformance:
     name: conformance (verifier self-tests)
@@ -142,7 +138,7 @@ jobs:
   ok:
     name: ok
     if: always()
-    needs: [lint, conformance, docs]
+    needs: [lint, version-sync, conformance, docs]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
